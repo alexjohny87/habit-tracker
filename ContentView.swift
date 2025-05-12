@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  habit-tracker
-//
-//  Created by Alex Johny on 5/11/25.
-//
-
 import SwiftUI
 import SwiftData
 
@@ -22,18 +15,17 @@ struct ContentView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         // Header
                         HStack {
-                            Spacer(minLength: 48)
-                            
+                            Spacer()
                             Text("Habit Tracker")
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(.textPrimary)
                                 .tracking(-0.3)
-                                .frame(maxWidth: .infinity)
+                            Spacer()
                             
                             Button(action: {
                                 // Settings action
                             }) {
-                                Image(systemName: "gearshape")
+                                Image(systemName: "gearshape")x
                                     .font(.system(size: 24))
                                     .foregroundColor(.textPrimary)
                             }
@@ -68,9 +60,6 @@ struct ContentView: View {
                                 },
                                 onToggleEnabled: {
                                     habitStore.toggleEnabled(for: habit.id)
-                                },
-                                onDelete: {
-                                    habitStore.deleteHabit(id: habit.id)
                                 }
                             )
                         }
@@ -104,9 +93,9 @@ struct ContentView: View {
                                     .foregroundColor(.success)
                             }
                             
-                            // Chart
-                            WeeklyChart(values: habitStore.weeklyProgress)
-                                .frame(height: 180)
+                            // Calendar instead of chart
+                            CalendarView(completionData: habitStore.completionData)
+                                .frame(height: 300)
                                 .padding(.top, 8)
                         }
                         .padding()
