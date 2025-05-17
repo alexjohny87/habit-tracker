@@ -42,7 +42,7 @@ struct CalendarView: View {
             }
             .padding(.horizontal, 8)
             
-            // Calendar grid - custom implementation with all days
+            // Calendar grid - custom implementation with 30/31 days
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 8) {
                 let days = daysInMonth()
                 
