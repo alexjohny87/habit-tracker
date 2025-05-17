@@ -11,6 +11,7 @@ struct Habit: Identifiable, Codable {
 
 class HabitStore: ObservableObject {
     @Published var habits: [Habit] = []
+    @Published var calendarData: [UUID: [Date: Bool]] = [:]
     
     var streakCount: Int = 5
     var habitCount: Int { return habits.count }
@@ -22,16 +23,6 @@ class HabitStore: ObservableObject {
     
     init() {
         loadHabits()
-        
-        // If no habits exist, create default ones
-        if habits.isEmpty {
-            habits = [
-                Habit(title: "Meditate", time: "7am"),
-                Habit(title: "Workout", time: "12pm"),
-                Habit(title: "Read", time: "8pm")
-            ]
-            saveHabits()
-        }
         
         // Generate sample completion data for the past month
         generateSampleCompletionData()

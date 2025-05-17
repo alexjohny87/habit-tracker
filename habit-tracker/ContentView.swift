@@ -43,7 +43,7 @@ struct ContentView: View {
                         .padding(.vertical, 8)
                         
                         // Streak info
-                        Text("You're on a \(habitStore.streakCount)-day streak. Keep it up!")
+                        Text("Welcome back Alex!")
                             .font(.system(size: 32, weight: .bold))
                             .foregroundColor(.textPrimary)
                             .padding(.horizontal)
@@ -51,31 +51,42 @@ struct ContentView: View {
                             .padding(.bottom, 12)
                         
                         // Today's Habits Section
-                        Text("Today's Habits")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.textPrimary)
-                            .tracking(-0.3)
-                            .padding(.horizontal)
-                            .padding(.top, 16)
-                            .padding(.bottom, 8)
-                        
-                        // Habit Items
-                        ForEach(habitStore.habits) { habit in
-                            HabitItemView(
-                                habit: habit,
-                                onToggleCompleted: {
-                                    habitStore.toggleCompleted(for: habit.id)
-                                },
-                                onToggleEnabled: {
-                                    habitStore.toggleEnabled(for: habit.id)
-                                },
-                                onDelete: {
-                                    habitStore.deleteHabit(id: habit.id)
-                                }
-                            )
+                        HStack {
+                            Text("Today's Habits")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.textPrimary)
+                                .tracking(-0.3)
+                            
+                            Spacer()
+                            
+                            Text("\(habitStore.habits.count) habits")
+                                .foregroundColor(.textSecondary)
+                                .font(.system(size: 14))
                         }
+                        .padding(.horizontal)
+                        .padding(.top, 24)
+                        .padding(.bottom, 8)
                         
-                        // Calendar Section
+                        // Habit Items - Card Layout
+                        VStack(spacing: 10) {
+                            ForEach(habitStore.habits) { habit in
+                                HabitItemView(
+                                    habit: habit,
+                                    onToggleCompleted: {
+                                        habitStore.toggleCompleted(for: habit.id)
+                                    },
+                                    onToggleEnabled: {
+                                        habitStore.toggleEnabled(for: habit.id)
+                                    },
+                                    onDelete: {
+                                        habitStore.deleteHabit(id: habit.id)
+                                    }
+                                )
+                            }
+                        }
+                        .padding(.vertical, 8)
+
+                        // Calendar Section - Moved above habits for prominence
                         Text("Calendar")
                             .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.textPrimary)
@@ -84,9 +95,20 @@ struct ContentView: View {
                             .padding(.top, 16)
                             .padding(.bottom, 8)
                         
+                        // Calendar Card
+                        VStack {
+                            CalendarView(completionData: habitStore.completionData)
+                                .frame(minHeight: 320)
+                        }
+                        .padding()
+                        .background(Color.cardBackground)
+                        .cornerRadius(16)
+                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                        .padding(.horizontal)
+                        
                         // Stats Card
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Habits")
+                            Text("Statistics")
                                 .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(.textPrimary)
                             
@@ -103,14 +125,14 @@ struct ContentView: View {
                                     .font(.system(size: 16, weight: .medium))
                                     .foregroundColor(.success)
                             }
-                            
-                            // Chart
-                            WeeklyChart(values: habitStore.weeklyProgress)
-                                .frame(height: 180)
-                                .padding(.top, 8)
                         }
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.cardBackground)
+                        .cornerRadius(16)
+                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                        .padding(.horizontal)
+                        .padding(.top, 16)
                         
                         Spacer(minLength: 60)
                     }

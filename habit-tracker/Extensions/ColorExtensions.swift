@@ -1,15 +1,18 @@
 import SwiftUI
 
-// MARK: - Color Extensions
+// Global color extensions 
 extension Color {
+    // App Colors - Using direct color values instead of asset references
     static let background = Color(hex: "1C1D22")
+    static let cardBackground = Color(hex: "292B32")
     static let textPrimary = Color(hex: "F9FAFA")
     static let textSecondary = Color(hex: "D5D6DD")
-    static let accent = Color(hex: "607AFB")
-    static let success = Color(hex: "46C507")
-    static let toggleBackground = Color(hex: "3C3F4A")
+    static let accent = Color.blue // Using system blue for now, or using the AccentColor from asset catalog
+    static let success = Color.green
+    static let toggleBackground = Color.gray.opacity(0.3)
     static let borderGray = Color(hex: "505362")
     
+    // Helper initializer for hex colors
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
