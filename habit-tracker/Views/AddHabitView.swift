@@ -3,82 +3,113 @@ import SwiftUI
 struct AddHabitView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var habitStore: HabitStore
-    
+
     @State private var title = ""
-    @State private var time = ""
-    
+    @State private var selectedEmoji = "🏃"
+    @State private var selectedColorIndex = 0
+
+    private let emojis = [
+        "🏃", "📖", "🧘", "💪", "🧠", "💤", "💧", "🥗",
+        "✍️", "🎵", "🧹", "💊", "🚶", "🎯", "📱", "🏋️",
+    ]
+
+    private var canSave: Bool {
+        !title.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color.background
-                    .ignoresSafeArea()
-                
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("Create New Habit")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.textPrimary)
-                        .padding(.top)
-                    
-                    // Habit name field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Habit name")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.textPrimary)
-                        
-                        TextField("", text: $title)
-                            .padding()
-                            .background(Color.toggleBackground)
-                            .cornerRadius(12)
-                            .foregroundColor(.textPrimary)
-                            .accentColor(.accent)
-                    }
-                    
-                    // Time field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Time")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.textPrimary)
-                        
-                        TextField("", text: $time)
-                            .padding()
-                            .background(Color.toggleBackground)
-                            .cornerRadius(12)
-                            .foregroundColor(.textPrimary)
-                            .accentColor(.accent)
-                    }
-                    
-                    Spacer()
-                    
-                    // Create button
-                    Button(action: {
-                        if !title.isEmpty {
-                            habitStore.addHabit(title: title, time: time.isEmpty ? "Anytime" : time)
-                            dismiss()
-                        }
-                    }) {
-                        Text("Create Habit")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.textPrimary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                            .background(title.isEmpty ? Color.toggleBackground : Color.accent)
-                            .cornerRadius(24)
-                    }
-                    .disabled(title.isEmpty)
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Habit name", text: $title)
                 }
-                .padding()
+
+                Section("Icon") {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 8), spacing: 14) {
+                        ForEach(emojis, id: \.self) { emoji in
+                            Text(emoji)
+                                .font(.title2)
+                                .frame(width: 42, height: 42)
+                                .background(
+                                    Circle()
+                                        .fill(selectedEmoji == emoji ? Color.accentColor.opacity(0.15) : Color.clear)
+                                )
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder(selectedEmoji == emoji ? Color.accentColor : .clear, lineWidth: 2)
+                                )
+                                .onTapGesture { selectedEmoji = emoji }
+                        }
+                    }
+                    .padding(.vertical, 6)
+                }
+
+                Section("Color") {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 8), spacing: 14) {
+                        ForEach(HabitStore.habitColors.indices, id: \.self) { index in
+                            Circle()
+                                .fill(Color(hex: HabitStore.habitColors[index]))
+                                .frame(width: 32, height: 32)
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder(.white, lineWidth: selectedColorIndex == index ? 3 : 0)
+                                )
+                                .shadow(
+                                    color: selectedColorIndex == index
+                                        ? Color(hex: HabitStore.habitColors[index]).opacity(0.5)
+                                        : .clear,
+                                    radius: 4
+                                )
+                                .scaleEffect(selectedColorIndex == index ? 1.15 : 1.0)
+                                .animation(.spring(response: 0.25), value: selectedColorIndex)
+                                .onTapGesture { selectedColorIndex = index }
+                        }
+                    }
+                    .padding(.vertical, 6)
+                }
+
+                Section {
+                    HStack(spacing: 14) {
+                        Text(selectedEmoji)
+                            .font(.title)
+                            .frame(width: 48, height: 48)
+                            .background(Color(hex: HabitStore.habitColors[selectedColorIndex]).opacity(0.12))
+                            .clipShape(Circle())
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(title.isEmpty ? "Habit name" : title)
+                                .font(.body)
+                                .fontWeight(.medium)
+                                .foregroundStyle(title.isEmpty ? .tertiary : .primary)
+                            Text("Preview")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("Preview")
+                }
             }
+            .navigationTitle("New Habit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        habitStore.addHabit(
+                            title: title.trimmingCharacters(in: .whitespaces),
+                            emoji: selectedEmoji,
+                            colorHex: HabitStore.habitColors[selectedColorIndex]
+                        )
                         dismiss()
-                    }) {
-                        Image(systemName: "xmark")
-                            .foregroundColor(.textPrimary)
                     }
+                    .fontWeight(.semibold)
+                    .disabled(!canSave)
                 }
             }
         }
     }
-} 
+}

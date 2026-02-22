@@ -1,69 +1,71 @@
-//
-//  HabitItemView.swift
-//  habit-tracker
-//
-
 import SwiftUI
-
-// Temporary replacement for SessionData access
-extension UUID {
-    var stringValue: String {
-        return self.uuidString
-    }
-}
 
 struct HabitItemView: View {
     let habit: Habit
-    let onToggleCompleted: () -> Void
-    let onToggleEnabled: () -> Void
+    let isSelected: Bool
+    let isCompletedToday: Bool
+    let streak: Int
+    let totalCompletions: Int
+    let onTap: () -> Void
+    let onToggleCompletion: () -> Void
     let onDelete: () -> Void
-    
-    // Track selected habit locally for now
-    @State private var isSelected: Bool = false
-    
+
     var body: some View {
-        VStack {
-            HStack {
-                // Title and time
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(habit.title)
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(habit.isCompleted ? .white : .white)
-                        .lineLimit(1)
-                    
-                    Text(habit.time)
-                        .font(.system(size: 14))
-                        .foregroundColor(habit.isCompleted ? .white.opacity(0.8) : .gray)
-                        .lineLimit(1)
+        HStack(spacing: 14) {
+            Text(habit.emoji)
+                .font(.title2)
+                .frame(width: 46, height: 46)
+                .background(habit.color.opacity(0.12))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(habit.title)
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.primary)
+
+                HStack(spacing: 8) {
+                    if streak > 0 {
+                        Label("\(streak)d streak", systemImage: "flame.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                    if totalCompletions > 0 {
+                        Text("\(totalCompletions) total")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                
-                Spacer()
-                
-                // Delete button
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 16))
-                        .foregroundColor(habit.isCompleted ? .white.opacity(0.8) : .red.opacity(0.8))
-                }
-                .padding(8)
-                .background(habit.isCompleted ? Color.clear : Color.gray.opacity(0.2))
-                .cornerRadius(8)
             }
+
+            Spacer()
+
+            Button(action: onToggleCompletion) {
+                Image(systemName: isCompletedToday ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 28))
+                    .foregroundStyle(isCompletedToday ? habit.color : Color(.tertiaryLabel))
+                    .animation(.spring(response: 0.3), value: isCompletedToday)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(habit.isCompleted ? Color.blue : Color.gray.opacity(0.2))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-        .contentShape(Rectangle())
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(isSelected ? habit.color : .clear, lineWidth: 2.5)
+        )
         .padding(.horizontal)
-        .padding(.vertical, 5)
-        .onTapGesture {
-            // Toggle completed state
-            onToggleCompleted()
-            
-            // Toggle selected state locally
-            isSelected.toggle()
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
+        .contextMenu {
+            Button(role: .destructive, action: onDelete) {
+                Label("Delete Habit", systemImage: "trash")
+            }
         }
     }
 }
