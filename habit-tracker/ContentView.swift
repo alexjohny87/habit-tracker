@@ -1,177 +1,169 @@
-//
-//  ContentView.swift
-//  habit-tracker
-//
-//  Created by Alex Johny on 5/11/25.
-//
-
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
     @StateObject private var habitStore = HabitStore()
     @State private var showingAddHabit = false
-    
-    var body: some View {
-        ZStack {
-            Color.background
-                .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        // Header
-                        HStack {
-                            Spacer(minLength: 48)
-                            
-                            Text("Habit Tracker")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.textPrimary)
-                                .tracking(-0.3)
-                                .frame(maxWidth: .infinity)
-                            
-                            Button(action: {
-                                // Settings action
-                            }) {
-                                Image(systemName: "gearshape")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.textPrimary)
-                            }
-                            .frame(width: 48)
-                        }
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
-                        
-                        // Streak info
-                        Text("Welcome back Alex!")
-                            .font(.system(size: 32, weight: .bold))
-                            .foregroundColor(.textPrimary)
-                            .padding(.horizontal)
-                            .padding(.top, 24)
-                            .padding(.bottom, 12)
-                        
-                        // Today's Habits Section
-                        HStack {
-                            Text("Today's Habits")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.textPrimary)
-                                .tracking(-0.3)
-                            
-                            Spacer()
-                            
-                            Text("\(habitStore.habits.count) habits")
-                                .foregroundColor(.textSecondary)
-                                .font(.system(size: 14))
-                        }
-                        .padding(.horizontal)
-                        .padding(.top, 24)
-                        .padding(.bottom, 8)
-                        
-                        // Habit Items - Card Layout
-                        VStack(spacing: 10) {
-                            ForEach(habitStore.habits) { habit in
-                                HabitItemView(
-                                    habit: habit,
-                                    onToggleCompleted: {
-                                        habitStore.toggleCompleted(for: habit.id)
-                                    },
-                                    onToggleEnabled: {
-                                        habitStore.toggleEnabled(for: habit.id)
-                                    },
-                                    onDelete: {
-                                        habitStore.deleteHabit(id: habit.id)
-                                    }
-                                )
-                            }
-                        }
-                        .padding(.vertical, 8)
+    @State private var detailHabit: Habit? = nil
 
-                        // Calendar Section - Moved above habits for prominence
-                        Text("Calendar")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.textPrimary)
-                            .tracking(-0.3)
-                            .padding(.horizontal)
-                            .padding(.top, 16)
-                            .padding(.bottom, 8)
-                        
-                        // Calendar Card
-                        VStack {
-                            CalendarView(completionData: habitStore.completionData)
-                                .frame(minHeight: 320)
-                        }
-                        .padding()
-                        .background(Color.cardBackground)
-                        .cornerRadius(16)
-                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                        .padding(.horizontal)
-                        
-                        // Stats Card
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Statistics")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.textPrimary)
-                            
-                            Text("\(habitStore.habitCount)")
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(.textPrimary)
-                            
-                            HStack(spacing: 4) {
-                                Text("Last 7 days")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.textSecondary)
-                                
-                                Text(habitStore.weeklyGrowth)
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.success)
-                            }
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.cardBackground)
-                        .cornerRadius(16)
-                        .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                        .padding(.horizontal)
-                        .padding(.top, 16)
-                        
-                        Spacer(minLength: 60)
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    dateHeader
+                    calendarSection
+                    todaySection
+                }
+                .padding(.top, 4)
+                .padding(.bottom, 100)
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Habits")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showingAddHabit = true } label: {
+                        Image(systemName: "plus")
+                            .fontWeight(.semibold)
                     }
                 }
-                
-                // Footer with Create button
-                VStack(spacing: 0) {
-                    Divider()
-                        .opacity(0)
-                    
-                    HStack {
-                        Button(action: {
-                            showingAddHabit = true
-                        }) {
-                            HStack {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 24))
-                                Text("Create habit")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .tracking(0.3)
-                            }
-                            .foregroundColor(.textPrimary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                            .background(Color.accent)
-                            .cornerRadius(24)
-                        }
+            }
+            .sheet(isPresented: $showingAddHabit) {
+                AddHabitView(habitStore: habitStore)
+            }
+            .sheet(item: $detailHabit) { habit in
+                HabitDetailView(habit: habit, habitStore: habitStore)
+            }
+        }
+    }
+
+    // MARK: - Date Header
+
+    private var dateHeader: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(Date(), format: .dateTime.weekday(.wide))
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+            Text(Date(), format: .dateTime.month(.wide).day())
+                .font(.title2.bold())
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
+    }
+
+    // MARK: - Calendar Section
+
+    @ViewBuilder
+    private var calendarSection: some View {
+        if let habit = habitStore.selectedHabit {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 8) {
+                    Text(habit.emoji)
+                        .font(.title3)
+                    Text(habit.title)
+                        .font(.headline)
+                    Spacer()
+
+                    let streak = habitStore.currentStreak(for: habit.id)
+                    if streak > 0 {
+                        Label("\(streak) day streak", systemImage: "flame.fill")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.orange)
                     }
-                    .padding()
-                    
-                    Color.background
-                        .frame(height: 20)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 4)
+
+                CalendarView(
+                    completionDates: habitStore.selectedHabitCompletionDates,
+                    accentColor: habitStore.selectedHabitColor,
+                    onToggleDate: { date in
+                        habitStore.toggleCompletion(for: habit.id, on: date)
+                    }
+                )
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
+            )
+            .padding(.horizontal)
+            .transition(.opacity.combined(with: .move(edge: .top)))
+        } else {
+            VStack(spacing: 10) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 28))
+                    .foregroundStyle(.quaternary)
+                Text("Tap a habit to view its history")
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
+            .transition(.opacity)
+        }
+    }
+
+    // MARK: - Today Section
+
+    private var todaySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Today")
+                    .font(.title3)
+                    .fontWeight(.bold)
+
+                Spacer()
+
+                if !habitStore.habits.isEmpty {
+                    let completed = habitStore.habits.filter { habitStore.isCompletedToday($0.id) }.count
+                    Text("\(completed) of \(habitStore.habits.count)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal)
+
+            if habitStore.habits.isEmpty {
+                emptyState
+            } else {
+                ForEach(habitStore.habits) { habit in
+                    HabitItemView(
+                        habit: habit,
+                        isSelected: habitStore.selectedHabitId == habit.id,
+                        isCompletedToday: habitStore.isCompletedToday(habit.id),
+                        streak: habitStore.currentStreak(for: habit.id),
+                        totalCompletions: habitStore.totalCompletions(for: habit.id),
+                        onTap: {
+                            habitStore.selectHabit(habit.id)
+                            detailHabit = habit
+                        },
+                        onToggleCompletion: { habitStore.toggleTodayCompletion(for: habit.id) },
+                        onDelete: {
+                            withAnimation { habitStore.deleteHabit(id: habit.id) }
+                        }
+                    )
                 }
             }
         }
-        .font(.system(size: 16))
-        .sheet(isPresented: $showingAddHabit) {
-            AddHabitView(habitStore: habitStore)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "plus.circle")
+                .font(.system(size: 36))
+                .foregroundStyle(.tertiary)
+            Text("No habits yet")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            Text("Tap + to create your first habit")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
     }
 }
 

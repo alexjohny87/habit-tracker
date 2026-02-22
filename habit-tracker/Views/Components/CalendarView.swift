@@ -1,125 +1,129 @@
 import SwiftUI
 
 struct CalendarView: View {
-    let completionData: [Date: Bool]
-    
+    let completionDates: Set<String>
+    let accentColor: Color
+    var onToggleDate: ((Date) -> Void)? = nil
+
     @State private var currentMonth = Date()
     private let calendar = Calendar.current
-    private let daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-    
+    private let dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = .current
+        return f
+    }()
+
     var body: some View {
-        VStack(spacing: 20) {
-            // Month selector
+        VStack(spacing: 16) {
             HStack {
-                Button(action: { changeMonth(by: -1) }) {
+                Button { changeMonth(by: -1) } label: {
                     Image(systemName: "chevron.left")
-                        .foregroundColor(.textPrimary)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 32, height: 32)
                 }
-                
+
                 Spacer()
-                
+
                 Text(monthYearString(from: currentMonth))
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.textPrimary)
-                
+                    .font(.headline)
+
                 Spacer()
-                
-                Button(action: { changeMonth(by: 1) }) {
+
+                Button { changeMonth(by: 1) } label: {
                     Image(systemName: "chevron.right")
-                        .foregroundColor(.textPrimary)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 32, height: 32)
                 }
             }
-            .padding(.horizontal)
-            
-            // Days of week header
+
             HStack(spacing: 0) {
-                ForEach(daysOfWeek, id: \.self) { day in
+                ForEach(Array(dayLabels.enumerated()), id: \.offset) { _, day in
                     Text(day)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.textSecondary)
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity)
                 }
             }
-            .padding(.horizontal, 8)
-            
-            // Calendar grid - custom implementation with all days
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 8) {
-                let days = daysInMonth()
-                
-                // Add empty cells for padding at the start of the month
-                ForEach(0..<firstWeekdayOfMonth()-1, id: \.self) { _ in
-                    Rectangle()
-                        .foregroundColor(.clear)
-                        .aspectRatio(1, contentMode: .fit)
+
+            let days = daysInMonth()
+            let leadingSpaces = firstWeekdayOfMonth() - 1
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 6) {
+                ForEach(0..<leadingSpaces, id: \.self) { _ in
+                    Color.clear.aspectRatio(1, contentMode: .fit)
                 }
-                
-                // Actual days of the month
+
                 ForEach(days, id: \.self) { date in
                     let day = calendar.component(.day, from: date)
-                    let isCompleted = completionData[calendar.startOfDay(for: date), default: false]
+                    let dateString = Self.dateFormatter.string(from: date)
+                    let isCompleted = completionDates.contains(dateString)
                     let isToday = calendar.isDateInToday(date)
-                    
+                    let isFuture = date > Date()
+
                     ZStack {
-                        Circle()
-                            .fill(backgroundFor(isCompleted: isCompleted, isToday: isToday))
-                            .aspectRatio(1, contentMode: .fit)
-                        
+                        if isCompleted {
+                            Circle()
+                                .fill(accentColor)
+                        } else if isToday {
+                            Circle()
+                                .strokeBorder(accentColor, lineWidth: 2)
+                        }
+
                         Text("\(day)")
-                            .font(.system(size: 14, weight: isToday ? .bold : .regular))
-                            .foregroundColor(textColorFor(isCompleted: isCompleted, isToday: isToday))
+                            .font(.system(size: 14, weight: isToday || isCompleted ? .semibold : .regular))
+                            .foregroundStyle(
+                                isCompleted ? .white :
+                                isFuture ? Color(.quaternaryLabel) :
+                                isToday ? .primary : .secondary
+                            )
                     }
                     .aspectRatio(1, contentMode: .fit)
+                    .contentShape(Circle())
+                    .onTapGesture {
+                        guard !isFuture, onToggleDate != nil else { return }
+                        withAnimation(.spring(response: 0.25)) {
+                            onToggleDate?(date)
+                        }
+                    }
                 }
             }
-            .padding(.horizontal, 8)
         }
+        .padding()
     }
-    
+
     private func daysInMonth() -> [Date] {
-        let range = calendar.range(of: .day, in: .month, for: currentMonth)!
-        let numDays = range.count
-        
-        let firstDay = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth))!
-        
-        return (0..<numDays).compactMap { day in
+        guard let range = calendar.range(of: .day, in: .month, for: currentMonth),
+              let firstDay = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth))
+        else { return [] }
+
+        return (0..<range.count).compactMap { day in
             calendar.date(byAdding: .day, value: day, to: firstDay)
         }
     }
-    
+
     private func firstWeekdayOfMonth() -> Int {
-        let firstDay = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth))!
+        guard let firstDay = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth))
+        else { return 1 }
         return calendar.component(.weekday, from: firstDay)
     }
-    
-    private func backgroundFor(isCompleted: Bool, isToday: Bool) -> Color {
-        if isCompleted {
-            return Color.accent
-        } else if isToday {
-            return Color.accent.opacity(0.2)
-        } else {
-            return Color.clear
-        }
-    }
-    
-    private func textColorFor(isCompleted: Bool, isToday: Bool) -> Color {
-        if isCompleted {
-            return .white
-        } else if isToday {
-            return .textPrimary
-        } else {
-            return .textSecondary
-        }
-    }
-    
+
     private func monthYearString(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
         return formatter.string(from: date)
     }
-    
+
     private func changeMonth(by value: Int) {
-        if let newMonth = calendar.date(byAdding: .month, value: value, to: currentMonth) {
-            currentMonth = newMonth
+        withAnimation(.easeInOut(duration: 0.2)) {
+            if let newMonth = calendar.date(byAdding: .month, value: value, to: currentMonth) {
+                currentMonth = newMonth
+            }
         }
     }
-} 
+}
